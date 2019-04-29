@@ -15,6 +15,8 @@ from statsmodels.tsa.stattools import adfuller
 
 get_ipython().run_line_magic('matplotlib', 'inline')
 
+PRINT = False
+
 
 # In[ ]:
 
@@ -245,7 +247,14 @@ model.forward(X_train[:BATCH_SIZE]).shape, X_train[:BATCH_SIZE].shapefor i in mo
 
 
 def get_profit(y, x, alphas):
+    if PRINT:
+        print("Xs:\n", x[0].cpu())
+        print("ys:\n", y[0].cpu())
+
     L3 = ((y - x)*alphas).sum(dim=1)
+
+    if PRINT:
+        print("L3s:\n", L3[:2].cpu())
     return L3
 
 
@@ -268,16 +277,17 @@ def get_hedging_score(alphas, betas):
 
 def calc_loss(alphas, betas, x_batch, y_batch):
     a = 1
-    b = 99999
+    b = 10
+    c = 1000
     
     L1 = get_dist_from_200(alphas)**2
     L2 = get_hedging_score(alphas, betas)**2 
-    L3 = get_profit(y_batch, x_batch[:, -1, :5], alphas)
-    L = (a*L1 + b*L2 - L3)
+    L3 = get_profit(y_batch, x_batch[:, -1, 1:6], alphas)
+    L = a*L1 + b*L2 - c*L3
     
 #     print(L1.size(), L2.size(), L3.size())
     
-    return b*L2.sum()
+    return L.sum()
 
 x.dtype, y.dtype, betas.dtype, alphas.dtype
 # In[ ]:
@@ -295,6 +305,8 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=2, fa
 for epoch in range(1000):
     for i, (x, y) in enumerate(train_dl):
         x, y = x.to(device), y.to(device)
+#         print("Xs:\n", x[:2, -1, :].cpu())
+#         print("ys:\n", y[:2, :].cpu())
 #         print(x)
         alphas = model(x)#.type(torch.Tensor)#.to(device)        
         loss = calc_loss(alphas, betas, x, y)
@@ -317,9 +329,9 @@ for epoch in range(1000):
         alphas_val = model(x_val).type(torch.Tensor).to(device)        
         loss_val = calc_loss(alphas_val, betas, x_val, y_val)
         losses_val.append(loss_val.cpu().detach().numpy())
-        L1s.append(get_dist_from_200(alphas_val).sum().cpu().detach().numpy())
-        L2s.append(get_hedging_score(alphas_val, betas).sum().cpu().detach().numpy())
-        profits.append(get_profit(y_val, x_val[:, -1, :5], alphas_val).sum().cpu().detach().numpy())
+        L1s.append(get_dist_from_200(alphas_val).cpu().detach().numpy().mean())
+        L2s.append(get_hedging_score(alphas_val, betas).cpu().detach().numpy().mean())
+        profits.append(get_profit(y_val, x_val[:, -1, 1:6], alphas_val).cpu().detach().numpy().mean())
     model.train()
     
     mean_loss_val = np.mean(losses_val)
@@ -335,6 +347,52 @@ for epoch in range(1000):
     
 
 
+# In[ ]:
+
+
+xx = X_test[:2]
+# xx
+xx[:, -1, 1:6]
+
+
+# In[ ]:
+
+
+yy = y_test[:2]
+yy
+
+
+# In[ ]:
+
+
+alphas = model.to("cpu")(xx)
+print(alphas)
+
+
+# In[ ]:
+
+
+alphas.abs().cpu().detach().numpy().sum(axis=1)
+
+
+# In[ ]:
+
+
+alphas@betas.to("cpu")
+
+
+# In[ ]:
+
+
+betas
+
+
+# In[ ]:
+
+
+get_profit(yy, xx[:, -1, 1:6], alphas)
+
+
 # Change a, b during epochs so that profit will also be tuned during initial steps of optimization
 w_fc3 = list(model.fc3.parameters())w_fc3[0] = torch.zeros_like(w_fc3[0])
 w_fc3[1] = torch.zeros_like(w_fc3[1])
@@ -342,3 +400,8 @@ w_fc3[1][0] = 200.list(model.fc3.parameters())model.fc3.weight.data = (torch.zer
 model.fc3.bias.data = torch.zeros_like(model.fc3.bias)
 model.fc3.bias[0] = 200.x = X[:64, :, :]
 y = y[:64, :]calc_loss(model(x), betas, x.to(device), y.to(device))
+# In[ ]:
+
+
+(1+0.05/200)**(6*9*200)
+
