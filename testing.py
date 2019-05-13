@@ -264,8 +264,7 @@ model = Model()
 model = model.to(device)
 # print(model)
 
-model.forward(X_train[:BATCH_SIZE]).shape, X_train[:BATCH_SIZE].shapefor i in model.parameters():
-    print(i)
+
 # In[17]:
 
 
@@ -311,16 +310,6 @@ def calc_loss(alphas, betas, x_batch, y_batch):
 #     print(L1.size(), L2.size(), L3.size())
     
     return L.sum()
-
-x.dtype, y.dtype, betas.dtype, alphas.dtype
-# In[21]:
-
-
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-
-
-# In[22]:
-
 
 losses_epoch = []
 losses_val_history = []
@@ -398,59 +387,6 @@ for epoch in range(1000):
 
     model.train()
 
-
-# In[ ]:
-
-
-(1+mean_profit)**(6*8*200)
-
-
-# In[ ]:
-
-
-xx = X_test[:2]
-# xx
-xx[:, -1, 1:6]
-
-
-# In[ ]:
-
-
-yy = y_test[:2]
-yy
-
-
-# In[ ]:
-
-
-alphas = model.to("cpu")(xx)
-print(alphas)
-
-
-# In[ ]:
-
-
-alphas.abs().cpu().detach().numpy().sum(axis=1)
-
-
-# In[ ]:
-
-
-alphas@betas.to("cpu")
-
-
-# In[ ]:
-
-
-betas
-
-
-# In[ ]:
-
-
-get_profit(yy, xx[:, -1, 1:6], alphas)
-
-
 # Change a, b during epochs so that profit will also be tuned during initial steps of optimization
 w_fc3 = list(model.fc3.parameters())w_fc3[0] = torch.zeros_like(w_fc3[0])
 w_fc3[1] = torch.zeros_like(w_fc3[1])
@@ -458,30 +394,32 @@ w_fc3[1][0] = 200.list(model.fc3.parameters())model.fc3.weight.data = (torch.zer
 model.fc3.bias.data = torch.zeros_like(model.fc3.bias)
 model.fc3.bias[0] = 200.x = X[:64, :, :]
 y = y[:64, :]calc_loss(model(x), betas, x.to(device), y.to(device))
-# In[ ]:
-
-
-(1+0.08/200)**(6*9*200)
-
-
-# In[ ]:
-
-
-(1+0.05/200)**(6*9*200)
-
-
-# In[ ]:
+# In[21]:
 
 
 ### testing
 
 
+# In[22]:
+
+
 model = Model()
 # PATH = save_path
-PATH = "model_vindish_epoch_18_train_loss_-280_val_loss107.pth.tar"
+from glob import glob
+PATH = glob("model*.tar")[-1]
+
+
+# In[23]:
+
+
+# PATH = "model_vindish_epoch_18_train_loss_-280_val_loss107.pth.tar"
 model.load_state_dict(torch.load(PATH))
 model.to(device)
 model.eval()
+
+
+# In[24]:
+
 
 profits = []
 costs = []
@@ -492,23 +430,64 @@ x, y = next(iter(test_dl))
 x, y = x.to(device), y.to(device)
 alphas_test.append(model(x).type(torch.Tensor).to(device))
 
+
+# In[25]:
+
+
+income = []
+outcome = []
+income.append(0)
+outcome.append(-(alphas_test[-1].abs().sum()*trans_cost).detach().cpu().numpy())
+outcome
+
+
+# In[26]:
+
+
+x[0, :, 0].min()
+
+
+# In[27]:
+
+
 i = 0
+flag_re_buy = True
 
 for x, y in tqdm(test_dl): # batch size is 1 for testing
     i += 1
-#     if i == 10:
-#         break
+
     x, y = x.to(device), y.to(device)
     alphas_test.append(model(x).type(torch.Tensor).to(device))
-#         loss_val = calc_loss(alphas_val, betas, x_val, y_val)
-#         losses_val.append(loss_val.cpu().detach().numpy())
-#         L1s.append(get_dist_from_200(alphas_val).cpu().detach().numpy().mean())
-#         L2s.append(get_hedging_score(alphas_val, betas).cpu().detach().numpy().mean())
-    profits.append(get_profit(y, x[:, -1, 1:6], alphas_test[-1]).cpu().detach().numpy().mean())
-    costs.append(np.abs(alphas_test[-1].cpu().detach().numpy()-alphas_test[-2].cpu().detach().numpy()).sum()*trans_cost)
 
-print("Total profit including costs: {:.4f}".format(sum(profits+costs)))
-pd.DataFrame({"profits":profits, "costs":costs})
+    if (x[0, :, 0].min()<0.3 or i==1) and not flag_re_buy:
+        print(f"selling all in i={i}")
+#         print(alphas_test[-2])
+#         print(y.shape)
+#         print(y)
+        income.append((alphas_test[-2]*y).sum().detach().cpu().numpy()) # may also be negative if the contract i bought doesn't profitable
+        flag_re_buy = True
+        outcome.append(-(alphas_test[-2].abs().sum()*trans_cost).detach().cpu().numpy())
+        continue
+        
+    if flag_re_buy and x[0, :, 0].min()>0.3:
+        print(f"re-buying all in i={i}")
+        flag_re_buy = False
+        outcome.append(-(alphas_test[-1].abs().sum()*trans_cost).detach().cpu().numpy())
+    
+    if flag_re_buy: # the case when we're in between months so we dont have any contract
+        continue
+    
+    outcome.append(-np.abs(alphas_test[-1].cpu().detach().numpy()-alphas_test[-2].cpu().detach().numpy()).sum()*trans_cost)
+    income.append(((alphas_test[-1]-alphas_test[-2])*x[:, -1, 1:6]).cpu().detach().numpy().mean())
+    
+print("Total profit including costs: {:.4f}".format(sum(income+outcome)))
+
+
+# In[38]:
+
+
+print(sum(income), min(income), sorted( [(x,i) for (i,x) in enumerate(income)], reverse=True )[:5], len(income))
+print(sum(outcome), min(outcome), max(outcome), len(outcome))
 
 
 # In[ ]:
