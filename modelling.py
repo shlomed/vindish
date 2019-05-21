@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import pandas as pd
@@ -21,7 +21,7 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 PRINT = False
 
 
-# In[2]:
+# In[ ]:
 
 
 import keras
@@ -29,14 +29,14 @@ import torch
 import torchvision
 
 
-# In[3]:
+# In[ ]:
 
 
 c_dir = "C://Users/shlomi/Documents/Work/vindish/data/"
 e_dir = "E:\\Work/Vindish/created_samples/"
 
 
-# In[4]:
+# In[ ]:
 
 
 X = torch.tensor(np.load(e_dir + "X.npy")).type(torch.float32)
@@ -44,14 +44,14 @@ y = torch.tensor(np.load(e_dir + "y.npy")).type(torch.float32)
 features = np.load(e_dir+"features.npy")
 
 
-# In[5]:
+# In[ ]:
 
 
 print(X.shape, y.shape)
 print(X.type(), y.type())
 
 
-# In[6]:
+# In[ ]:
 
 
 for i, j in enumerate(features):
@@ -60,7 +60,7 @@ for i, j in enumerate(features):
 
 # ### Define Model
 
-# In[7]:
+# In[ ]:
 
 
 class MiniConv2d(torch.nn.Module):
@@ -93,7 +93,7 @@ class MiniConv2d(torch.nn.Module):
 
 mini_conv2d = MiniConv2d()
 mini_conv2d(X[:3, :5].unsqueeze_(1))
-# In[8]:
+# In[ ]:
 
 
 class MiniConv1d(torch.nn.Module):
@@ -129,7 +129,7 @@ mini_conv1d = MiniConv1d()
 mini_conv1d(X[:3, :5].unsqueeze_(1))mini_conv_singles = MiniConv1d(init_kernel_size=(3,3))
 singles = X[:, :,  [0, 18, 19]].unsqueeze_(1)
 mini_conv_singles(singles)
-# In[9]:
+# In[ ]:
 
 
 class Embeddings(torch.nn.Module):
@@ -145,7 +145,7 @@ class Embeddings(torch.nn.Module):
 embed = torch.nn.Embedding(6, 2)
 embed(torch.tensor([[1,1,3,4], [1,1,3,4]])).shapeembed = Embeddings(7, 2)
 embed(X[:, :, 7].type(torch.long)).shape
-# In[10]:
+# In[ ]:
 
 
 class Model(torch.nn.Module):
@@ -190,27 +190,27 @@ class Model(torch.nn.Module):
 
 # ### split train/test
 
-# In[11]:
+# In[ ]:
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-# In[12]:
+# In[ ]:
 
 
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 
 
-# In[13]:
+# In[ ]:
 
 
 BATCH_SIZE = 64
 betas = torch.from_numpy(np.array([0.62, 0.44, 0.32, 0.26, 0.21])).type(torch.Tensor).to(device)
 
 
-# In[14]:
+# In[ ]:
 
 
 n_train = int(X.shape[0]*0.6)
@@ -238,7 +238,7 @@ X_test = X[n_val:]
 y_test = y[n_val:]
 
 
-# In[15]:
+# In[ ]:
 
 
 train_ds = TensorDataset(X_train, y_train)
@@ -253,7 +253,7 @@ test_dl = DataLoader(test_ds, batch_size=1)
 
 # ### Run Model
 
-# In[16]:
+# In[ ]:
 
 
 model = Model()
@@ -266,7 +266,7 @@ model = model.to(device)
 
 model.forward(X_train[:BATCH_SIZE]).shape, X_train[:BATCH_SIZE].shapefor i in model.parameters():
     print(i)
-# In[17]:
+# In[ ]:
 
 
 def get_profit(y, x, alphas):
@@ -281,21 +281,21 @@ def get_profit(y, x, alphas):
     return L3
 
 
-# In[18]:
+# In[ ]:
 
 
 def get_dist_from_200(alphas):
     return (alphas.abs().sum(dim=1)-200.)
 
 
-# In[19]:
+# In[ ]:
 
 
 def get_hedging_score(alphas, betas):
     return (alphas*betas).sum(dim=1)
 
 
-# In[20]:
+# In[ ]:
 
 
 def calc_loss(alphas, betas, x_batch, y_batch):
@@ -313,13 +313,13 @@ def calc_loss(alphas, betas, x_batch, y_batch):
     return L.sum()
 
 x.dtype, y.dtype, betas.dtype, alphas.dtype
-# In[21]:
+# In[ ]:
 
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 
-# In[22]:
+# In[ ]:
 
 
 losses_epoch = []
@@ -539,4 +539,10 @@ profits[50]
 
 
 alphas_test = model(x0)
+
+
+# In[ ]:
+
+
+6*24
 

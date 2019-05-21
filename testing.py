@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import pandas as pd
@@ -21,7 +21,7 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 PRINT = False
 
 
-# In[2]:
+# In[ ]:
 
 
 import keras
@@ -29,14 +29,14 @@ import torch
 import torchvision
 
 
-# In[3]:
+# In[ ]:
 
 
 c_dir = "C://Users/shlomi/Documents/Work/vindish/data/"
 e_dir = "E:\\Work/Vindish/created_samples/"
 
 
-# In[4]:
+# In[ ]:
 
 
 X = torch.tensor(np.load(e_dir + "X.npy")).type(torch.float32)
@@ -44,23 +44,23 @@ y = torch.tensor(np.load(e_dir + "y.npy")).type(torch.float32)
 features = np.load(e_dir+"features.npy")
 
 
-# In[5]:
+# In[ ]:
 
 
 print(X.shape, y.shape)
 print(X.type(), y.type())
 
 
-# In[6]:
+# In[ ]:
 
 
 for i, j in enumerate(features):
     print(i, j)
 
-
+i = 29X[i, -1, 1:6] - X[i, -2, 1:6]X[i, -1, 10:15]
 # ### Define Model
 
-# In[7]:
+# In[ ]:
 
 
 class MiniConv2d(torch.nn.Module):
@@ -93,7 +93,7 @@ class MiniConv2d(torch.nn.Module):
 
 mini_conv2d = MiniConv2d()
 mini_conv2d(X[:3, :5].unsqueeze_(1))
-# In[8]:
+# In[ ]:
 
 
 class MiniConv1d(torch.nn.Module):
@@ -129,7 +129,7 @@ mini_conv1d = MiniConv1d()
 mini_conv1d(X[:3, :5].unsqueeze_(1))mini_conv_singles = MiniConv1d(init_kernel_size=(3,3))
 singles = X[:, :,  [0, 18, 19]].unsqueeze_(1)
 mini_conv_singles(singles)
-# In[9]:
+# In[ ]:
 
 
 class Embeddings(torch.nn.Module):
@@ -145,7 +145,7 @@ class Embeddings(torch.nn.Module):
 embed = torch.nn.Embedding(6, 2)
 embed(torch.tensor([[1,1,3,4], [1,1,3,4]])).shapeembed = Embeddings(7, 2)
 embed(X[:, :, 7].type(torch.long)).shape
-# In[10]:
+# In[ ]:
 
 
 class Model(torch.nn.Module):
@@ -190,27 +190,28 @@ class Model(torch.nn.Module):
 
 # ### split train/test
 
-# In[11]:
+# In[ ]:
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = "cpu"
 
 
-# In[12]:
+# In[ ]:
 
 
 from torch.utils.data import DataLoader
 from torch.utils.data import TensorDataset
 
 
-# In[13]:
+# In[ ]:
 
 
 BATCH_SIZE = 64
 betas = torch.from_numpy(np.array([0.62, 0.44, 0.32, 0.26, 0.21])).type(torch.Tensor).to(device)
 
 
-# In[14]:
+# In[ ]:
 
 
 n_train = int(X.shape[0]*0.6)
@@ -238,7 +239,7 @@ X_test = X[n_val:]
 y_test = y[n_val:]
 
 
-# In[15]:
+# In[ ]:
 
 
 train_ds = TensorDataset(X_train, y_train)
@@ -253,7 +254,7 @@ test_dl = DataLoader(test_ds, batch_size=1)
 
 # ### Run Model
 
-# In[16]:
+# In[ ]:
 
 
 model = Model()
@@ -265,7 +266,13 @@ model = model.to(device)
 # print(model)
 
 
-# In[17]:
+# In[ ]:
+
+
+# device
+
+
+# In[ ]:
 
 
 def get_profit(y, x, alphas):
@@ -280,21 +287,21 @@ def get_profit(y, x, alphas):
     return L3
 
 
-# In[18]:
+# In[ ]:
 
 
 def get_dist_from_200(alphas):
     return (alphas.abs().sum(dim=1)-200.)
 
 
-# In[19]:
+# In[ ]:
 
 
 def get_hedging_score(alphas, betas):
     return (alphas*betas).sum(dim=1)
 
 
-# In[20]:
+# In[ ]:
 
 
 def calc_loss(alphas, betas, x_batch, y_batch):
@@ -394,13 +401,13 @@ w_fc3[1][0] = 200.list(model.fc3.parameters())model.fc3.weight.data = (torch.zer
 model.fc3.bias.data = torch.zeros_like(model.fc3.bias)
 model.fc3.bias[0] = 200.x = X[:64, :, :]
 y = y[:64, :]calc_loss(model(x), betas, x.to(device), y.to(device))
-# In[21]:
+# In[ ]:
 
 
 ### testing
 
 
-# In[22]:
+# In[ ]:
 
 
 model = Model()
@@ -409,7 +416,7 @@ from glob import glob
 PATH = glob("model*.tar")[-1]
 
 
-# In[23]:
+# In[ ]:
 
 
 # PATH = "model_vindish_epoch_18_train_loss_-280_val_loss107.pth.tar"
@@ -418,7 +425,7 @@ model.to(device)
 model.eval()
 
 
-# In[24]:
+# In[ ]:
 
 
 profits = []
@@ -431,7 +438,7 @@ x, y = x.to(device), y.to(device)
 alphas_test.append(model(x).type(torch.Tensor).to(device))
 
 
-# In[25]:
+# In[ ]:
 
 
 income = []
@@ -441,13 +448,13 @@ outcome.append(-(alphas_test[-1].abs().sum()*trans_cost).detach().cpu().numpy())
 outcome
 
 
-# In[26]:
+# In[ ]:
 
 
 x[0, :, 0].min()
 
 
-# In[27]:
+# In[ ]:
 
 
 i = 0
@@ -483,7 +490,49 @@ for x, y in tqdm(test_dl): # batch size is 1 for testing
 print("Total profit including costs: {:.4f}".format(sum(income+outcome)))
 
 
-# In[38]:
+# In[ ]:
+
+
+pd.Series(outcome).sort_values(ascending=False)[4:].sum()
+
+
+# In[ ]:
+
+
+i = 0
+flag_re_buy = True
+
+for x, y in tqdm(test_dl): # batch size is 1 for testing
+    i += 1
+
+    x, y = x.to(device), y.to(device)
+    alphas_test.append(model(x).type(torch.Tensor).to(device))
+
+    if (x[0, :, 0].min()<0.3 or i==1) and not flag_re_buy:
+        print(f"selling all in i={i}")
+#         print(alphas_test[-2])
+#         print(y.shape)
+#         print(y)
+        income.append((alphas_test[-2]*y).sum().detach().cpu().numpy()) # may also be negative if the contract i bought doesn't profitable
+        flag_re_buy = True
+        outcome.append(-(alphas_test[-2].abs().sum()*trans_cost).detach().cpu().numpy())
+        continue
+        
+    if flag_re_buy and x[0, :, 0].min()>0.3:
+        print(f"re-buying all in i={i}")
+        flag_re_buy = False
+        outcome.append(-(alphas_test[-1].abs().sum()*trans_cost).detach().cpu().numpy())
+    
+    if flag_re_buy: # the case when we're in between months so we dont have any contract
+        continue
+    
+    outcome.append(-np.abs(alphas_test[-1].cpu().detach().numpy()-alphas_test[-2].cpu().detach().numpy()).sum()*trans_cost)
+    income.append(((alphas_test[-1]-alphas_test[-2])*x[:, -1, 1:6]).cpu().detach().numpy().mean())
+    
+print("Total profit including costs: {:.4f}".format(sum(income+outcome)))
+
+
+# In[ ]:
 
 
 print(sum(income), min(income), sorted( [(x,i) for (i,x) in enumerate(income)], reverse=True )[:5], len(income))
@@ -518,4 +567,149 @@ profits[50]
 
 
 alphas_test = model(x0)
+
+
+# ### Explore with Shlomo
+
+# In[ ]:
+
+
+x_cur = X_test[0].to(device).unsqueeze(0)
+y_cur = y_test[0].to(device).unsqueeze(0)
+ux_current = x_cur[0, -5:, 1:6]
+ux_current
+
+
+# In[ ]:
+
+
+model.eval()
+alphas_cur = model(x_cur)
+
+
+# In[ ]:
+
+
+print("Hedging:", alphas_cur[0]@betas, "\nSum:", alphas.abs().sum())
+
+
+# In[ ]:
+
+
+get_profit(y_cur, x_cur[0, -1, 1:6], alphas_cur)
+
+
+# In[ ]:
+
+
+
+print(x_cur[:, -1, 1:6])
+print(y_cur)
+print(alphas)
+
+
+# In[ ]:
+
+
+((y_cur[0] - x_cur[:, -1, 1:6][0])*alphas_cur).sum()
+
+
+# In[ ]:
+
+
+pd.DataFrame(x_cur[0].detach().cpu().numpy(), columns=features).to_csv("input_example_for_model.csv")
+
+
+# ### Backtesting with Shlomo
+
+# In[ ]:
+
+
+class Result():
+    pass
+
+    def to_dict(self):
+        return self.__dict__
+
+
+# In[ ]:
+
+
+def torch_to_numpy(t):
+    try:
+        t = t.detach()
+    except:
+        pass
+    
+    try:
+        t = t.cpu()
+    except:
+        pass
+    
+    try:
+        t = t.numpy()
+    except:
+        pass
+    
+    return t
+
+
+# In[1]:
+
+
+def change_alphas(alphas_prev, alphas_cur, y_prev, y_cur, fee=0.01):
+    """
+    we are now at time=t. we have X[t] to derive alphas[t]
+    alphas_prev = derived from X[t-1] => alphas_prev = alphas[t-1]
+    
+    """
+    
+    
+    # tensors to numpy:
+    alphas_cur = torch_to_numpy(alphas_cur)
+    alphas_prev = torch_to_numpy(alphas_prev)
+    y_cur = torch_to_numpy(y_cur)
+    y_prev = torch_to_numpy(y_prev)
+    
+    # calc results
+    results = Result()
+    result.buy_sell_expenses = np.abs(alphas_cur-alphas_prev).sum()*fee
+    result.execution = (alphas_cur-alphas_prev)@y_cur
+    result.pure_pnl = (y_cur - y_prev)@alphas_prev
+    result.real_pnl = result.pure_pnl - result.buy_sell_expenses
+    
+    return results
+
+
+# In[ ]:
+
+
+all_results = []
+
+i = 0
+
+while True:
+    x = X_test[i]
+    if x[:, 0].min()>0.3:
+        break
+    i += 1
+        
+x = X_test[i]
+alphas_cur = model(x.unsqueeze_(0))
+
+for x in X_test[i+1:]:
+    alphas_prev = alphas_cur
+    alphas_cur = model(x)
+    y_prev = x[-2, 1:6]
+    y_cur = x[-1, 1:6]
+    
+    if x[:, 0].min()<0.3:
+        alphas_cur = np.zeros(5)
+        flag_rebuy = True
+        
+    if flag_rebuy and x[:, 0].min() > 0.3:
+        flag_rebuy=False
+        
+    
+    all_results.append(change_alphas(alphas_prev, alphas_cur, y_prev, y_cur))
 
