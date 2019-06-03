@@ -58,6 +58,13 @@ for i, j in enumerate(features):
     print(i, j)
 
 i = 29X[i, -1, 1:6] - X[i, -2, 1:6]X[i, -1, 10:15]
+# In[ ]:
+
+
+# subtruct 1 so the dom will be in the [0,30] range for embeddings
+X[:,:,8] -= 1
+
+
 # ### Define Model
 
 # In[ ]:
@@ -654,10 +661,10 @@ def torch_to_numpy(t):
     return t
 
 
-# In[1]:
+# In[ ]:
 
 
-def change_alphas(alphas_prev, alphas_cur, y_prev, y_cur, fee=0.01):
+def change_alphas(alphas_prev, alphas_cur, y_prev, y_cur, out_before_transaction_prev, fee=0.01):
     """
     we are now at time=t. we have X[t] to derive alphas[t]
     alphas_prev = derived from X[t-1] => alphas_prev = alphas[t-1]
@@ -671,20 +678,29 @@ def change_alphas(alphas_prev, alphas_cur, y_prev, y_cur, fee=0.01):
     y_cur = torch_to_numpy(y_cur)
     y_prev = torch_to_numpy(y_prev)
     
-    # calc results
-    results = Result()
+    # calc result
+    result = Result()
     result.buy_sell_expenses = np.abs(alphas_cur-alphas_prev).sum()*fee
     result.execution = (alphas_cur-alphas_prev)@y_cur
-    result.pure_pnl = (y_cur - y_prev)@alphas_prev
+    
+#     print((y_cur - y_prev).shape)
+#     print(alphas_prev.shape)
+    result.pure_pnl = ((y_cur - y_prev)@alphas_prev.flatten()).sum()
     result.real_pnl = result.pure_pnl - result.buy_sell_expenses
     
-    return results
+    result.in_before_transaction = alphas_prev@y_cur
+    result.out_before_transaction = out_before_transaction_prev +                                     (alphas_prev - alphas_cur)@y_cur +                                     np.abs(alphas_cur-alphas_prev).sum()*fee
+        
+    return result
 
 
 # In[ ]:
 
 
-all_results = []
+res0 = Result()
+res0.in_before_transaction = 0.
+res0.out_before_transaction = 0.
+all_results = [res0]
 
 i = 0
 
@@ -695,13 +711,13 @@ while True:
     i += 1
         
 x = X_test[i]
-alphas_cur = model(x.unsqueeze_(0))
+alphas_cur = model(x.unsqueeze_(0)) * 0.
 
-for x in X_test[i+1:]:
+for x in tqdm(X_test[i+1:]):
     alphas_prev = alphas_cur
-    alphas_cur = model(x)
-    y_prev = x[-2, 1:6]
-    y_cur = x[-1, 1:6]
+    alphas_cur = model(x.unsqueeze_(0))
+    y_prev = x[0, -2, 1:6]
+    y_cur = x[0, -1, 1:6]
     
     if x[:, 0].min()<0.3:
         alphas_cur = np.zeros(5)
@@ -711,5 +727,41 @@ for x in X_test[i+1:]:
         flag_rebuy=False
         
     
-    all_results.append(change_alphas(alphas_prev, alphas_cur, y_prev, y_cur))
+    all_results.append(change_alphas(alphas_prev, alphas_cur, y_prev, y_cur, all_results[-1].out_before_transaction))
+
+
+# In[ ]:
+
+
+x[:, :, 8]
+
+
+# In[ ]:
+
+
+x[:,:,8].min()
+
+
+# In[ ]:
+
+
+X_test[:,:,8].min()
+
+
+# In[ ]:
+
+
+X_train[:,:,8].min()
+
+
+# In[ ]:
+
+
+set(pd.Series(torch_to_numpy(X_train[:, 0, 8])).unique())==set(pd.Series(torch_to_numpy(X_test[:, 0, 8])).unique())
+
+
+# In[ ]:
+
+
+pd.Series(torch_to_numpy(X_train[:, 0, 8])).isnull().sum()
 
