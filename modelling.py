@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import pandas as pd
@@ -21,7 +21,7 @@ get_ipython().run_line_magic('matplotlib', 'inline')
 PRINT = False
 
 
-# In[2]:
+# In[ ]:
 
 
 import keras
@@ -29,254 +29,37 @@ import torch
 import torchvision
 
 
-# In[3]:
+# ### Loading Data
+
+# In[ ]:
 
 
-c_dir = "C://Users/shlomi/Documents/Work/vindish/data/"
-e_dir = "E:\\Work/Vindish/created_samples/"
-
-
-# In[4]:
-
-
-X = torch.tensor(np.load(e_dir + "X.npy")).type(torch.float32)
-y = torch.tensor(np.load(e_dir + "y.npy")).type(torch.float32)
-features = np.load(e_dir+"features.npy")
-
-
-# In[5]:
-
-
-print(X.shape, y.shape)
-print(X.type(), y.type())
-
-
-# In[6]:
-
-
-for i, j in enumerate(features):
-    print(i, j)
-
-
-# In[7]:
-
-
-# subtruct 1 so the dom will be in the [0,30] range for embeddings
-X[:,:,8] -= 1
+from data_loader import *
 
 
 # ### Define Model
 
-# In[8]:
+# In[ ]:
 
 
-class MiniConv2d(torch.nn.Module):
-    def __init__(self):
-        super(MiniConv2d, self).__init__()
-        self.conv1 = torch.nn.Conv2d(1, 5, 3, padding=1)
-        self.conv2 = torch.nn.Conv2d(5, 5, 3, padding=1)
-        self.conv3 = torch.nn.Conv2d(5, 5, 3, padding=1)
-        self.conv4 = torch.nn.Conv2d(5, 5, 3, padding=1)
-        self.conv5 = torch.nn.Conv2d(5, 5, 3, padding=1)
-        self.conv6 = torch.nn.Conv2d(5, 5, 3, padding=1)
-        self.conv7 = torch.nn.Conv2d(5, 5, 3, padding=1)
-    def forward(self, x):
-        x = self.conv1(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv2(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv3(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv4(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv5(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv6(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv7(x)
-        x = torch.nn.functional.relu(x)
-        
-        return x
+from models import *
 
-mini_conv2d = MiniConv2d()
-mini_conv2d(X[:3, :5].unsqueeze_(1))
-# In[9]:
+model = Model()
+model = model.to(device)
 
-
-class MiniConv1d(torch.nn.Module):
-    def __init__(self, init_kernel_size=(3, 2)):
-        super(MiniConv1d, self).__init__()
-        self.conv1 = torch.nn.Conv2d(1, 5, init_kernel_size, padding=(1, 1))
-        self.conv2 = torch.nn.Conv2d(5, 5, (3, 3), padding=(1, 1))
-        self.conv3 = torch.nn.Conv2d(5, 5, (3, 3), padding=(1, 1))
-        self.conv4 = torch.nn.Conv2d(5, 5, (3, 3), padding=(1, 1))
-        self.conv5 = torch.nn.Conv2d(5, 5, (3, 3), padding=(1, 1))
-        self.conv6 = torch.nn.Conv2d(5, 5, (3, 3), padding=(1, 1))
-        self.conv7 = torch.nn.Conv2d(5, 5, (3, 3), padding=(1, 1))
-        
-    def forward(self, x):
-        x = self.conv1(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv2(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv3(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv4(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv5(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv6(x)
-        x = torch.nn.functional.relu(x)
-        x = self.conv7(x)
-        x = torch.nn.functional.relu(x)
-        
-        return x
-
-mini_conv1d = MiniConv1d()
-mini_conv1d(X[:3, :5].unsqueeze_(1))mini_conv_singles = MiniConv1d(init_kernel_size=(3,3))
-singles = X[:, :,  [0, 18, 19]].unsqueeze_(1)
-mini_conv_singles(singles)
-# In[10]:
-
-
-class Embeddings(torch.nn.Module):
-    def __init__(self, n_categories, n_dims):
-        super(Embeddings, self).__init__()
-        self.embed = torch.nn.Embedding(n_categories, n_dims)
-        
-    def forward(self, x):
-        x = self.embed(x)
-        
-        return x
-
-embed = torch.nn.Embedding(6, 2)
-embed(torch.tensor([[1,1,3,4], [1,1,3,4]])).shapeembed = Embeddings(7, 2)
-embed(X[:, :, 7].type(torch.long)).shape
-# In[11]:
-
-
-class Model(torch.nn.Module):
-    def __init__(self):
-        super(Model, self).__init__()
-        self.mini_conv_ux = MiniConv2d()
-        self.mini_conv_ux_diffs = MiniConv2d()
-        self.mini_conv_snp = MiniConv1d()
-        self.mini_conv_singles = MiniConv1d(init_kernel_size=(3,3))
-        self.embed_dow = Embeddings(7, 3)
-        self.embed_dom = Embeddings(31, 5)
-        
-        self.fc1 = torch.nn.Linear(880, 64)
-        self.fc2 = torch.nn.Linear(64, 32)
-        self.fc3 = torch.nn.Linear(32, 5)
-        
-        
-    def forward(self, x):
-        ux_vals = x[:, :, 1:6].unsqueeze_(1)
-        ux_diffs = x[:, :, 10:15].unsqueeze_(1)
-        snp_data = x[:, :, [6,15]].unsqueeze_(1)
-        singles = x[:, :,  [0, 18, 19]].unsqueeze_(1) # time_to_expiration, doy, time_of_day
-        
-        dow = x[:, :, 17].type(torch.long)
-        dom = x[:, :, 16].type(torch.long)
-        
-        x_ux = self.mini_conv_ux(ux_vals).view(x.shape[0], -1)
-        x_diffs = self.mini_conv_ux_diffs(ux_diffs).view(x.shape[0], -1)
-        x_snp = self.mini_conv_snp(snp_data).view(x.shape[0], -1)
-        x_dow = self.embed_dow(dow).view(x.shape[0], -1)
-        x_dom = self.embed_dom(dom).view(x.shape[0], -1)
-        x_singles = self.mini_conv_singles(singles).view(x.shape[0], -1)
-        
-        x = torch.cat((x_ux, x_diffs, x_snp, x_dom, x_dow, x_singles), 1)
-        
-        x = torch.nn.functional.relu(self.fc1(x))
-        x = torch.nn.functional.relu(self.fc2(x))
-        x = self.fc3(x)
-        
-        return x
-
-
-# ### split train/test
-
-# In[12]:
-
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-# In[13]:
-
-
-from torch.utils.data import DataLoader
-from torch.utils.data import TensorDataset
-
-
-# In[14]:
-
-
-BATCH_SIZE = 64
-betas = torch.from_numpy(np.array([0.62, 0.44, 0.32, 0.26, 0.21])).type(torch.Tensor).to(device)
-
-
-# In[15]:
-
-
-n_train = int(X.shape[0]*0.6)
-n_val = int(X.shape[0]*0.8)
-
-X_train = X[:n_train]
-y_train = y[:n_train]
-
-X_val = X[n_train:n_val]
-y_val = y[n_train:n_val]
-
-# dropping all end of period samples:
-ser = pd.Series(X_train[:, -1, 0].detach().numpy())
-idx_to_keep = ser[ser>0.3].index.values
-X_train = X_train[idx_to_keep]
-y_train = y_train[idx_to_keep]
-
-ser = pd.Series(X_val[:, -1, 0].detach().numpy())
-idx_to_keep = ser[ser>0.3].index.values
-X_val = X_val[idx_to_keep]
-y_val = y_val[idx_to_keep]
-
-
-X_test = X[n_val:]
-y_test = y[n_val:]
-
-
-# In[16]:
-
-
-train_ds = TensorDataset(X_train, y_train)
-train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
-
-val_ds = TensorDataset(X_val, y_val)
-val_dl = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
-
-test_ds = TensorDataset(X_test, y_test)
-test_dl = DataLoader(test_ds, batch_size=1)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.33, verbose=True)
 
 
 # ### Run Model
-
-# In[17]:
-
-
 model = Model()
 # print(model)
 # model.fc3.weight.data = (torch.zeros_like(model.fc3.weight, requires_grad=True, device=device))
 # model.fc3.bias.data = torch.tensor([200., 0., 0., 0., 0.], requires_grad=True, device=device)
 
 model = model.to(device)
-# print(model)
-
-model.forward(X_train[:BATCH_SIZE]).shape, X_train[:BATCH_SIZE].shapefor i in model.parameters():
-    print(i)
-# In[18]:
-
-
-def get_profit(y, x, alphas):
+# print(model)model.forward(X_train[:BATCH_SIZE]).shape, X_train[:BATCH_SIZE].shapefor i in model.parameters():
+    print(i)def get_profit(y, x, alphas):
     if PRINT:
         print("Xs:\n", x[0].cpu())
         print("ys:\n", y[0].cpu())
@@ -285,27 +68,9 @@ def get_profit(y, x, alphas):
 
     if PRINT:
         print("L3s:\n", L3[:2].cpu())
-    return L3
-
-
-# In[19]:
-
-
-def get_dist_from_200(alphas):
-    return (alphas.abs().sum(dim=1)-200.)
-
-
-# In[20]:
-
-
-def get_hedging_score(alphas, betas):
-    return (alphas*betas).sum(dim=1)
-
-
-# In[21]:
-
-
-def calc_loss(alphas, betas, x_batch, y_batch):
+    return L3def get_dist_from_200(alphas):
+    return (alphas.abs().sum(dim=1)-200.)def get_hedging_score(alphas, betas):
+    return (alphas*betas).sum(dim=1)def calc_loss(alphas, betas, x_batch, y_batch):
     a = 1
     b = 10
     c = 10000
@@ -317,16 +82,14 @@ def calc_loss(alphas, betas, x_batch, y_batch):
     
 #     print(L1.size(), L2.size(), L3.size())
     
-    return L.sum()
-
-x.dtype, y.dtype, betas.dtype, alphas.dtype
-# In[22]:
+    return L.sum()x.dtype, y.dtype, betas.dtype, alphas.dtype
+# In[ ]:
 
 
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 
-# In[23]:
+# In[ ]:
 
 
 losses_epoch = []
@@ -385,7 +148,7 @@ for epoch in range(1000):
 
     if mean_loss_val<=min(losses_val_history):
         print("saving model.")
-        save_path = f"./model_vindish_epoch_{epoch}_train_loss_{int(mean_epoch_loss)}_val_loss{int(mean_loss_val)}.pth.tar"
+        save_path = f"./chkpnts/model_vindish_epoch_{epoch}_train_loss_{int(mean_epoch_loss)}_val_loss{int(mean_loss_val)}.pth.tar"
         torch.save(model.state_dict(), save_path)
     else:
         print("not saving model.")
