@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-import keras
+# import keras
 
 def from_date_get_dow_dom_doy(ser_date, init_col_name=""):
     """
