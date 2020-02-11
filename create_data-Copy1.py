@@ -16,26 +16,26 @@ from statsmodels.tsa.stattools import adfuller
 get_ipython().run_line_magic('matplotlib', 'inline')
 
 
-# In[9]:
+# In[2]:
 
 
 c_dir = "E:\\Datasets\\vindish\\"
 e_dir = "E:\\Work/Vindish/created_samples/"
 
 
-# In[10]:
+# In[3]:
 
 
 df = pd.read_csv(c_dir+"VIX Historical data 10 Min level since 2017 UX1_UX5.csv")
 
 
-# In[11]:
+# In[4]:
 
 
 df.head()
 
 
-# In[12]:
+# In[5]:
 
 
 # df[df.UX1.isnull()].head()
@@ -45,43 +45,50 @@ df = df[df.apply(lambda x: x.notnull().all(), axis=1)]
 print(df.shape)
 
 
-# In[13]:
+# In[6]:
 
 
 df.iloc[:, 2:7].plot()
 
 
-# In[14]:
+# In[7]:
 
 
 df.iloc[0:50000:5000, 2:7].T.plot()
 
 
-# In[ ]:
+# In[8]:
 
 
 df = add_features.drop_rows_with_null_dates(df)
 
 
-# In[ ]:
+# In[9]:
 
 
 df.Date = pd.to_datetime(df.Date, dayfirst=True)
 
 
-# In[ ]:
+# In[10]:
 
 
 df = pd.concat([df, add_features.from_date_get_dow_dom_doy(df.Date)], axis=1)
 
 
-# In[ ]:
+# In[11]:
+
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+
+# In[12]:
 
 
 df.head(100)
 
 
-# In[ ]:
+# In[13]:
 
 
 diff_cols = [i+"_diff" for i in df.iloc[:, 2:8].columns]
@@ -89,7 +96,7 @@ df[diff_cols] = df.iloc[:, 2:8].diff()
 df = df.iloc[1:, :]
 
 
-# In[ ]:
+# In[14]:
 
 
 df["day_of_month"] = df.Date.dt.day
@@ -104,47 +111,55 @@ df_dow.columns = df_dow_columns
 df_dom = pd.get_dummies(df.day_of_month)
 df_dom_columns = ["dom_"+str(i) for i in df.day_of_month.unique().tolist()]
 df_dom.columns = df_dom_columnsdf = pd.concat([df, df_dow, df_dom], axis=1)df.iloc[:, 2:14].head() # check diffs
-# In[ ]:
+# In[15]:
 
 
 df.memory_usage().sum()//1000000
 
 df.day_of_week.value_counts(dropna=False)adfuller(df.UX2.diff().values[1:])adfuller(df.UX2)
-# In[ ]:
+# In[16]:
 
 
 rol = df.iloc[:, 2:7].rolling(window=1000)
 
 
-# In[ ]:
+# In[17]:
 
 
 x = df.iloc[:11]
 
 
-# In[ ]:
+# In[18]:
 
 
 rol.mean().plot()
 
 
-# In[ ]:
+# In[19]:
 
 
 ux_vals = x[["UX1", "UX2", "UX3", "UX4", "UX5"]].iloc[:10].values
 ux_vals
 
 dow_dummy = pd.get_dummies(x.day_of_week)#, columns=days_list)dow_dummypd.get_dummies(x.day_of_month)
-# In[ ]:
+# In[20]:
 
 
 df.dow.unique()
 
 
-# In[ ]:
+# In[21]:
 
 
 df.head()
+
+
+# In[42]:
+
+
+save_dir = 'E:\\Datasets\\vindish'
+
+df.to_pickle(save_dir+'\\df_all.pkl')
 
 def create_xy_from_df(x, verbose=False):
     time_to_expiration = np.expand_dims(x.iloc[:10].loc[:, "Time_To_Expiration"].values, 1)

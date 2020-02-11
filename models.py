@@ -1,14 +1,16 @@
 
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import keras
 import torch
 import torchvision
+import numpy as np
 
 PRINT = False
+GAMMA = 1.
 
 
 # In[ ]:
@@ -152,10 +154,6 @@ class Model(torch.nn.Module):
         
         return x
 
-
-# In[ ]:
-
-
 def get_profit(y, x, alphas):
     if PRINT:
         print("Xs:\n", x[0].cpu())
@@ -177,6 +175,79 @@ def calc_loss(alphas, betas, x_batch, y_batch):
     a = 1
     b = 10
     c = 10000
+    
+    L1 = get_dist_from_200(alphas)**2
+    L2 = get_hedging_score(alphas, betas)**2 
+    L3 = get_profit(y_batch, x_batch[:, -1, 1:6], alphas)
+    L = a*L1 + b*L2 - c*L3def get_profit(y, x, alphas):
+    if PRINT:
+        print("Xs:\n", x[0].cpu())
+        print("ys:\n", y[0].cpu())
+
+    L3 = ((y - x)*alphas).sum(dim=1)
+
+    if PRINT:
+        print("L3s:\n", L3[:2].cpu())
+    return L3
+
+def get_dist_from_200(alphas):
+    return (alphas.abs().sum(dim=1)-200.)
+
+def get_hedging_score(alphas, betas):
+    return (alphas*betas).sum(dim=1)
+
+def calc_loss(alphas, betas, x_batch, y_batch):
+    a = 1
+    b = 10
+    c = 10000
+    
+    L1 = get_dist_from_200(alphas)**2
+    L2 = get_hedging_score(alphas, betas)**2 
+    L3 = get_profit(y_batch, x_batch[:, -1, 1:6], alphas)
+    L = a*L1 + b*L2 - c*L3
+    
+#     print(L1.size(), L2.size(), L3.size())
+    
+    return L.sum()
+    
+#     print(L1.size(), L2.size(), L3.size())
+    
+    return L.sum()
+# In[ ]:
+
+
+def get_profit(y, x, alphas):
+    if PRINT:
+        print("Xs:\n", x[0].cpu())
+        print("ys:\n", y[0].cpu())
+
+    L3 = ((y - x)*alphas).sum(dim=1)
+
+    if PRINT:
+        print("L3s:\n", L3[:2].cpu())
+    return L3
+
+def get_dist_from_200(alphas):
+    return (alphas.abs().sum(dim=1)-200.)
+
+def get_hedging_score(alphas, betas):
+    return (alphas*betas).sum(dim=1)
+
+def update_kpis(avg_kpi_alpha, avg_kpi_beta, avg_kpi_200, dist_from_200, dist_from_beta_0, profit):
+    kpi_200 = np.min(np.abs(dist_from_200/WINDOW_200), 0.9999)
+    kpi_beta = np.min(np.abs(dist_from_beta_0/WINDOW_BETA), 0.9999)
+    kpi_alpha = np.min(np.abs(profit/WINDOW_PROFIT), 0.9999)
+
+    avg_kpi_alpha = alpha*avg_kpi_alpha + (1-alpha)*kpi_alpha
+    avg_kpi_beta = alpha*avg_kpi_beta + (1-alpha)*kpi_beta
+    avg_kpi_200 = alpha*avg_kpi_200 + (1-alpha)*kpi_200
+    
+    return avg_kpi_alpha, avg_kpi_beta, avg_kpi_200
+
+def calc_loss(alphas, betas, x_batch, y_batch, avg_kpi_alpha, avg_kpi_beta, avg_kpi_200):
+    a = -(1-avg_kpi_200)**GAMMA * np.log(avg_kpi_200)
+    b = -(1-avg_kpi_200)**GAMMA * np.log(avg_kpi_beta)
+    c = -(1-avg_kpi_200)**GAMMA * np.log(avg_kpi_alpha)
     
     L1 = get_dist_from_200(alphas)**2
     L2 = get_hedging_score(alphas, betas)**2 
