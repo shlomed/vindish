@@ -1,0 +1,71 @@
+
+import torch
+from torch.utils.data import Dataset, DataLoader
+from torch import Tensor, nn
+import pandas as pd
+import numpy as np
+
+%load_ext autoreload
+%autoreload 2
+
+from data_loader_pytorch_class import VindishDataset
+dataset = VindishDataset()
+dataloader = DataLoader(dataset, batch_size=128)
+
+x1, x2, y1, y2 = next(iter(dataloader))
+
+class AlphaExtractor(nn.Module):
+    def __init__(self):
+        super(AlphaExtractor, self).__init__()
+        self.fc1 = nn.Linear(17, 5)
+        
+    def forward(self, x):
+        return self.fc1(x[:, -1, :])
+
+alpha_extractor = AlphaExtractor()
+
+class AlphaExtractorFull(nn.Module):
+    def __init__(self):
+        super(AlphaExtractorFull, self).__init__()
+        self.alpha_extractor = AlphaExtractor()
+        self.fc2 = nn.Linear(5, 5)
+        
+    def forward(self, x1, x2):
+#         self.alpha_extractor.requires_grad = False
+#         self.alpha_extractor.fc1.requires_grad = False
+        with torch.no_grad():
+            alpha_tm1 = self.alpha_extractor(x1)
+    #         self.alpha_extractor.train()
+            alpha_t = self.alpha_extractor(x2)
+        
+        alpha_tm1 = self.fc2(alpha_tm1)
+
+        return alpha_tm1, alpha_t
+
+alpha_extractor_full = AlphaExtractorFull()
+
+a1, a2 = alpha_extractor_full(x1, x2)
+
+a1.shape, a2.shape
+
+c = torch.sum(a1)+torch.sum(a2)
+
+c
+
+c.requires_grad
+
+a = list(alpha_extractor_full.alpha_extractor.fc1.parameters())
+a
+
+optim = torch.optim.SGD(alpha_extractor_full.parameters(), lr=0.1)
+
+alpha_extractor_full.zero_grad()
+c.backward()
+
+torch.no_grad()
+optim.step()
+
+a = list(alpha_extractor_full.alpha_extractor.fc1.parameters())
+a
+
+alpha_extractor_full.alpha_extractor.requires_grad
