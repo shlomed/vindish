@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 from torch.utils.data import Dataset, DataLoader
@@ -10,11 +10,11 @@ import pandas as pd
 import numpy as np
 
 
-# In[2]:
+# In[ ]:
 
 
 class VindishDataset(Dataset):
-    def __init__(self, df=None, df_data_file='E:\\Datasets\\vindish\\df_all.pkl', l_sample=10, seed=42):
+    def __init__(self, df=None, df_data_file='data/df_all.pkl', l_sample=10, seed=42):
         if df is not None:
             self.df = df
         else:
@@ -56,11 +56,11 @@ class VindishDataset(Dataset):
         return rule1
 
 
-# In[5]:
+# In[ ]:
 
 
 class VindishDataset(Dataset):
-    def __init__(self, df=None, df_data_file='E:\\Datasets\\vindish\\df_all.pkl', l_sample=10, seed=42, is_test=False):
+    def __init__(self, df=None, df_data_file='data/df_all.pkl', l_sample=10, seed=42, is_test=False):
         if df is not None:
             self.df = df
         else:
@@ -115,3 +115,5 @@ class VindishDataset(Dataset):
 
 # %%time
 # a = next(iter(dataloader))
+
+# a
